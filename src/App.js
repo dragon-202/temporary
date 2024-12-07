@@ -65,7 +65,7 @@ export default function App() {
     try {
       const tag_list = []
       const imageData = [];
-      const response = await axios.get('images/data.json');
+      const response = await axios.get('/images/data.json');
       const folders = response.data;
       for (let folder of folders) {
         tag_list.push(folder.tag)
