@@ -65,7 +65,7 @@ export default function App() {
     try {
       const tag_list = []
       const imageData = [];
-      const response = await axios.get('/images/data.json');
+      const response = await axios.get('/temporary/images/data.json');
       const folders = response.data;
       for (let folder of folders) {
         tag_list.push(folder.tag)
@@ -80,7 +80,7 @@ export default function App() {
             'bmp': 'image/bmp'
           }[fileExtension] || 'image/jpeg'; // Mặc định là jpeg nếu không xác định được
 
-          const imageResponse = await axios.get(`/images/${folder.tag}/${file}`, {
+          const imageResponse = await axios.get(`/temporary/images/${folder.tag}/${file}`, {
             responseType: 'arraybuffer'
           });
           console.log(imageResponse.data)
