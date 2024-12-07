@@ -56,6 +56,8 @@ export default function App() {
       tags.push(tag)
     }
     setSelectedTags(tags)
+    console.log(allImages)
+    console.log(allImages.filter(el=>tags.includes(el.tag)).length)
     setImages(allImages.filter(el=>tags.includes(el.tag)))
     if(tags.length==0){
       setImages(allImages)
@@ -83,30 +85,31 @@ export default function App() {
           const imageResponse = await axios.get(`/temporary/images/${folder.tag}/${file}`, {
             responseType: 'arraybuffer'
           });
-          console.log(imageResponse.data)
 
           let length = key.length;
           const time = Math.ceil(32 / length)
           const encryptionKey = key.repeat(time).substring(0, 32)
 
           const decrypted = decryptImage(imageResponse.data, encryptionKey)
-          console.log(decrypted)
           const base64Image = `data:${mimeType};base64,${decrypted.toString('base64')}`;
           const dimensions = await getImageDimensions(base64Image);
-          console.log(dimensions)
 
           imageData.push({
-            tag: folder,
+            tag: folder.tag,
             src: base64Image,
             original: base64Image,
             width: dimensions.width,
             height: dimensions.height,
-          })
+          })          
+          setTags(tag_list);
+          setAllImages([...imageData]); // Tạo một mảng mới để trigger re-render
+          setImages([...imageData]);
         }
       }
+              
       setTags(tag_list);
-      setAllImages(imageData);
-      setImages(imageData)
+      setAllImages([...imageData]);
+      setImages([...imageData]);
     } catch (err) {
       console.error('Error loading local images:', err);
       return null;
@@ -159,7 +162,9 @@ export default function App() {
               margin: "2px",
               border: "1px solid red",
               borderRadius: "10px",
-              cursor: "pointer"
+              cursor: "pointer",
+              backgroundColor:selectedTags.includes(t)?"red":"white",
+              color:selectedTags.includes(t)?"white":"red"
             }}
               onClick={(e) => { selectTag(t) }}
             >{t}</div>
