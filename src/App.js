@@ -65,13 +65,11 @@ export default function App() {
     try {
       const tag_list = []
       const imageData = [];
-      const response = await axios.get('/images');
+      const response = await axios.get('/data.json');
       const folders = response.data;
-      for (const folder of folders) {
-        tag_list.push(folder)
-        const res = await axios.get(`/images/${folder}`);
-        const files = res.data;
-        for (const file of files) {
+      for (let folder of folders) {
+        tag_list.push(folder.tag)
+        for (const file of folder.files) {
           const fileExtension = file.split('.').pop().toLowerCase();
           const mimeType = {
             'jpg': 'image/jpeg',
@@ -82,7 +80,7 @@ export default function App() {
             'bmp': 'image/bmp'
           }[fileExtension] || 'image/jpeg'; // Mặc định là jpeg nếu không xác định được
 
-          const imageResponse = await axios.get(`/images/${folder}/${file}`, {
+          const imageResponse = await axios.get(`/images/${folder.tag}/${file}`, {
             responseType: 'arraybuffer'
           });
           console.log(imageResponse.data)
