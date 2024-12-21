@@ -21,7 +21,7 @@ export default function App() {
   const [images, setImages] = useState([]);
   const [allImages, setAllImages] = useState([]);
   const [tags, setTags] = useState([]);
-
+  const [data, setData] = useState({});
   function decryptImage(encryptedData, key) {
     const iv = Buffer.from(encryptedData.slice(0, 16)); // IV là 16 byte đầu tiên
     const encrypted = Buffer.from(encryptedData.slice(16)); // Phần còn lại là dữ liệu mã hóa
@@ -48,30 +48,14 @@ export default function App() {
 
     return decryptedBuffer;
   }
-  const selectTag = (tag)=> {
+  const  selectTag  = async (tag) => {
     let tags=selectedTags
     if(tags.includes(tag)){
       tags=tags.filter(el=>el!=tag);
     }else{
       tags.push(tag)
-    }
-    setSelectedTags(tags)
-    console.log(allImages)
-    console.log(allImages.filter(el=>tags.includes(el.tag)).length)
-    setImages(allImages.filter(el=>tags.includes(el.tag)))
-    if(tags.length==0){
-      setImages(allImages)
-    }
-  }
-  const getLocalImages = async () => {
-    try {
-      const tag_list = []
-      const imageData = [];
-      const response = await axios.get('/temporary/images/data.json');
-      const folders = response.data;
-      for (let folder of folders) {
-        tag_list.push(folder.tag)
-        for (const file of folder.files) {
+      if(allImages.filter(el=>el.tag==tag).length==0){
+        for (const file of data[tag]) {
           const fileExtension = file.split('.').pop().toLowerCase();
           const mimeType = {
             'jpg': 'image/jpeg',
@@ -81,35 +65,49 @@ export default function App() {
             'webp': 'image/webp',
             'bmp': 'image/bmp'
           }[fileExtension] || 'image/jpeg'; // Mặc định là jpeg nếu không xác định được
-
-          const imageResponse = await axios.get(`/temporary/images/${folder.tag}/${file}`, {
+  
+          const imageResponse = await axios.get(`/temporary/images/${tag}/${file}`, {
             responseType: 'arraybuffer'
           });
-
+  
           let length = key.length;
           const time = Math.ceil(32 / length)
           const encryptionKey = key.repeat(time).substring(0, 32)
-
+  
           const decrypted = decryptImage(imageResponse.data, encryptionKey)
           const base64Image = `data:${mimeType};base64,${decrypted.toString('base64')}`;
           const dimensions = await getImageDimensions(base64Image);
-
-          imageData.push({
-            tag: folder.tag,
+  
+          allImages.push({
+            tag: tag,
             src: base64Image,
             original: base64Image,
             width: dimensions.width,
             height: dimensions.height,
           })          
-          setTags(tag_list);
-          setAllImages([...imageData]); // Tạo một mảng mới để trigger re-render
-          setImages([...imageData]);
+          setAllImages([...allImages]);
+          setImages(allImages.filter(el=>tags.includes(el.tag)))
         }
-      }
-              
+      }      
+    }
+    setSelectedTags(tags)
+    setImages(allImages.filter(el=>tags.includes(el.tag)))
+    if(tags.length==0){
+      setImages(allImages)
+    }
+  }
+  const getLocalImages = async () => {
+    try {
+      const tag_list = []
+      const response = await axios.get('/temporary/images/data.json');
+      const folders = response.data;
+      for (let folder of folders) {
+        tag_list.push(folder.tag)
+        data[folder.tag]=folder.files
+        setData({...data})
+      }              
       setTags(tag_list);
-      setAllImages([...imageData]);
-      setImages([...imageData]);
+      setSelectedTags([])
     } catch (err) {
       console.error('Error loading local images:', err);
       return null;
@@ -135,7 +133,8 @@ export default function App() {
         display: "flex",
         justifyContent: "center",
         alignItems:"center",
-        padding: "10px"
+        padding: "10px",
+        flexWrap:"wrap"
       }}>
         <input type="text" style={{
           padding: "5px",
@@ -155,7 +154,7 @@ export default function App() {
           cursor: "pointer"
         }}
           type="submit" onClick={(e) => getLocalImages()}>Reload</button>
-        <div style={{display:"flex"}}>
+        <div style={{display:"flex",flexWrap:"wrap"}}>
           {tags.map(t => {
             return <div style={{
               padding: "5px",
