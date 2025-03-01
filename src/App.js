@@ -48,14 +48,15 @@ export default function App() {
 
     return decryptedBuffer;
   }
-  const  selectTag  = async (tag) => {
-    let tags=selectedTags
-    if(tags.includes(tag)){
-      tags=tags.filter(el=>el!=tag);
-    }else{
+  const selectTag = async (tag) => {
+    let tags = selectedTags
+    if (tags.includes(tag)) {
+      tags = tags.filter(el => el != tag);
+      setImages(allImages.filter(el => tags.includes(el.tag)))
+    } else {
       tags.push(tag)
-      if(allImages.filter(el=>el.tag==tag).length==0){
-        for (const file of data[tag]) {
+      if (allImages.filter(el => el.tag == tag).length == 0) {
+        const promises = data[tag].map(async (file) => {
           const fileExtension = file.split('.').pop().toLowerCase();
           const mimeType = {
             'jpg': 'image/jpeg',
@@ -65,34 +66,38 @@ export default function App() {
             'webp': 'image/webp',
             'bmp': 'image/bmp'
           }[fileExtension] || 'image/jpeg'; // Mặc định là jpeg nếu không xác định được
-  
+
           const imageResponse = await axios.get(`/temporary/images/${tag}/${file}`, {
             responseType: 'arraybuffer'
           });
-  
+
           let length = key.length;
-          const time = Math.ceil(32 / length)
-          const encryptionKey = key.repeat(time).substring(0, 32)
-  
-          const decrypted = decryptImage(imageResponse.data, encryptionKey)
+          const time = Math.ceil(32 / length);
+          const encryptionKey = key.repeat(time).substring(0, 32);
+
+          const decrypted = decryptImage(imageResponse.data, encryptionKey);
           const base64Image = `data:${mimeType};base64,${decrypted.toString('base64')}`;
           const dimensions = await getImageDimensions(base64Image);
-  
-          allImages.push({
+
+          return {
             tag: tag,
             src: base64Image,
             original: base64Image,
             width: dimensions.width,
             height: dimensions.height,
-          })          
-          setAllImages([...allImages]);
-          setImages(allImages.filter(el=>tags.includes(el.tag)))
-        }
-      }      
+          };
+        });
+
+        // Chạy tất cả request song song bằng Promise.all
+        const images = await Promise.all(promises);
+
+        // Cập nhật state
+        setAllImages([...allImages, ...images]);
+        setImages([...allImages, ...images].filter(el => tags.includes(el.tag)));
+      }
     }
     setSelectedTags(tags)
-    setImages(allImages.filter(el=>tags.includes(el.tag)))
-    if(tags.length==0){
+    if (tags.length == 0) {
       setImages(allImages)
     }
   }
@@ -103,9 +108,9 @@ export default function App() {
       const folders = response.data;
       for (let folder of folders) {
         tag_list.push(folder.tag)
-        data[folder.tag]=folder.files
-        setData({...data})
-      }              
+        data[folder.tag] = folder.files
+        setData({ ...data })
+      }
       setTags(tag_list);
       setSelectedTags([])
     } catch (err) {
@@ -132,29 +137,29 @@ export default function App() {
       <div style={{
         display: "flex",
         justifyContent: "center",
-        alignItems:"center",
+        alignItems: "center",
         padding: "10px",
-        flexWrap:"wrap"
+        flexWrap: "wrap"
       }}>
         <input type="text" style={{
           padding: "5px",
           margin: "2px",
           borderRadius: "10px",
         }}
-        placeholder="Enter Key" value={key} onChange={e => setKey(e.target.value)}></input>
+          placeholder="Enter Key" value={key} onChange={e => setKey(e.target.value)}></input>
         <button style={{
           padding: "5px",
           margin: "2px",
           color: "white",
-          marginRight:"50px",
-          backgroundColor:"red",
-          outline:"none",
-          border:"none",
+          marginRight: "50px",
+          backgroundColor: "red",
+          outline: "none",
+          border: "none",
           borderRadius: "10px",
           cursor: "pointer"
         }}
           type="submit" onClick={(e) => getLocalImages()}>Reload</button>
-        <div style={{display:"flex",flexWrap:"wrap"}}>
+        <div style={{ display: "flex", flexWrap: "wrap" }}>
           {tags.map(t => {
             return <div style={{
               padding: "5px",
@@ -162,8 +167,8 @@ export default function App() {
               border: "1px solid red",
               borderRadius: "10px",
               cursor: "pointer",
-              backgroundColor:selectedTags.includes(t)?"red":"white",
-              color:selectedTags.includes(t)?"white":"red"
+              backgroundColor: selectedTags.includes(t) ? "red" : "white",
+              color: selectedTags.includes(t) ? "white" : "red"
             }}
               onClick={(e) => { selectTag(t) }}
             >{t}</div>

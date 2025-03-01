@@ -1,0 +1,1 @@
+console.log("Happy new year 2025");
