@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Gallery Grid</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+      body {
+        background-color: #f3f4f6;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 10px;
+        overscroll-behavior: none;
+      }
+      .container {
+        max-width: 100%;
+        margin: 0 auto;
+      }
+      .grid-view {
+        display: flex;
+        justify-content: space-between;
+      }
+      .column {
+        width: calc(50% - 5px);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .image-container {
+        position: relative;
+        width: 100%;
+        margin: 0;
+        break-inside: avoid;
+      }
+      .image-card {
+        width: 100%;
+        height: auto;
+        border-radius: 4px;
+        cursor: pointer;
+        display: block;
+      }
+      .image-card:hover {
+        opacity: 0.9;
+      }
+      .image-container p {
+        position: absolute;
+        bottom: 5px;
+        left: 5px;
+        color: white;
+        padding: 3px 6px;
+        font-size: 3vw;
+        font-weight: bold;
+        margin: 0;
+        max-width: 90%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        background-color: rgba(0, 0, 0, 0.5);
+        border-radius: 3px;
+      }
+      .image-buttons {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        display: flex;
+        gap: 5px;
+      }
+      .image-buttons button {
+        padding: 3px 6px;
+        font-size: 2.5vw;
+        cursor: pointer;
+        background-color: rgba(75, 85, 99, 0.8);
+        color: white;
+        border: none;
+        border-radius: 3px;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+      }
+      .image-buttons button:hover {
+        opacity: 0.8;
+      }
+      .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin: 15px 0;
+      }
+      .pagination button {
+        padding: 6px 12px;
+        font-size: 3vw;
+        cursor: pointer;
+        background-color: #4b5563;
+        color: white;
+        border: none;
+        border-radius: 4px;
+      }
+      .pagination button:disabled {
+        background-color: #9ca3af;
+        cursor: not-allowed;
+      }
+      .pagination span {
+        font-size: 3vw;
+        font-weight: bold;
+        color: #4b5563;
+      }
+      .fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        overscroll-behavior: none;
+      }
+      .fullscreen img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .fullscreen p {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        color: white;
+        font-size: 4vw;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0, 0,0.8);
+        max-width: 90%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .fullscreen-buttons {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        display: flex;
+        gap: 10px;
+      }
+      .fullscreen-buttons button {
+        padding: 8px 12px;
+        font-size: 3vw;
+        cursor: pointer;
+        background-color: rgba(75, 85, 99, 0.8);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+      }
+      .fullscreen-buttons button:hover {
+        opacity: 0.8;
+      }
+      .auto-scroll-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 100;
+      }
+      .auto-scroll-button button {
+        padding: 8px 12px;
+        font-size: 3vw;
+        cursor: pointer;
+        background-color: rgba(75, 85, 99, 0.8);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+      }
+      .auto-scroll-button button:hover {
+        opacity: 0.8;
+      }
+      .error {
+        color: #ef4444;
+        text-align: center;
+        padding: 10px;
+        font-size: 4vw;
+      }
+      .next-page-button {
+        position: fixed;
+        top: 35%;
+        left: 10px;
+        background-color: rgba(75, 85, 99, 0.4);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 50px 16px;
+        font-size: 5vw;
+        cursor: pointer;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+      }
+      .next-page-button:hover {
+        opacity: 0.8;
+      }
+      .page-input-container {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 1000;
+      }
+      .page-input {
+        padding: 6px;
+        font-size: 3vw;
+        width: 60px;
+        text-align: center;
+        background-color: rgba(75, 85, 99, 0.8);
+        color: white;
+        border: none;
+        border-radius: 4px;
+      }
+      .page-input:focus {
+        outline: none;
+        background-color: rgba(75, 85, 99, 1);
+      }
+      .go-button {
+        padding: 6px 12px;
+        font-size: 3vw;
+        cursor: pointer;
+        background-color: #4b5563;
+        color: white;
+        border: none;
+        border-radius: 4px;
+      }
+      .go-button:hover {
+        background-color: #6b7280;
+      }
+      .current-page {
+        font-size: 3vw;
+        color: white;
+        font-weight: bold;
+        background-color: rgba(75, 85, 99, 0.8);
+        padding: 6px 12px;
+        border-radius: 4px;
+      }
+      @media (max-width: 600px) {
+        .image-container p {
+          font-size: 3.5vw;
+          padding: 2px 5px;
+        }
+        .image-buttons button {
+          font-size: 3vw;
+          padding: 2px 5px;
+        }
+        .pagination button {
+          padding: 5px 10px;
+          font-size: 3.5vw;
+        }
+        .pagination span {
+          font-size: 3.5vw;
+        }
+        .fullscreen-buttons button {
+          font-size: 3.5vw;
+          padding: 6px 10px;
+        }
+        .auto-scroll-button button {
+          font-size: 3.5vw;
+          padding: 6px 10px;
+        }
+        .next-page-button {
+          font-size: 4.5vw;
+          padding: 10px 18px;
+        }
+        .page-input {
+          font-size: 3.5vw;
+          width: 50px;
+          padding: 5px;
+        }
+        .go-button {
+          font-size: 3.5vw;
+          padding: 5px 10px;
+        }
+        .current-page {
+          font-size: 3.5vw;
+          padding: 5px 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="page-input-container">
+        <span id="currentPageDisplay" class="current-page">${currentPage}</span>
+        <input type="number" class="page-input" id="pageInput" placeholder="Số trang" min="1">
+        <button class="go-button" onclick="goToPage()">Go</button>
+      </div>
+      <div id="imageContainer" class="grid-view">
+        <div id="leftColumn" class="column"></div>
+        <div id="rightColumn" class="column"></div>
+      </div>
+      <div id="pagination" class="pagination"></div>
+      <div id="fullscreen" class="fullscreen" style="display: none;"></div>
+      <div class="auto-scroll-button">
+        <button id="autoScrollButton">Lướt</button>
+      </div>
+      <button class="next-page-button" onclick="nextPage()">Next</button>
+    </div>
+    <script>
+      let allImages = [];
+      let currentPage = 1;
+      const imagesPerPage = 20;
+      let fullscreenIndex = null;
+      let autoScrollInterval = null;
+      let isWaitingForPageChange = false;
+
+      const leftColumn = document.getElementById('leftColumn');
+      const rightColumn = document.getElementById('rightColumn');
+      const pagination = document.getElementById('pagination');
+      const fullscreen = document.getElementById('fullscreen');
+      const autoScrollButton = document.getElementById('autoScrollButton');
+      const currentPageDisplay = document.getElementById('currentPageDisplay');
+
+      function showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error';
+        errorDiv.textContent = message;
+        leftColumn.appendChild(errorDiv);
+      }
+
+      fetch('https://dl.dropboxusercontent.com/scl/fi/qyo5edyr4jzx9rd7b9rrp/images.txt?rlkey=g0dfm86ddp761kqbne0937mxj&dl=1')
+        .then(response => {
+          if (!response.ok) throw new Error('Không thể tải file CSV: ' + response.statusText);
+          return response.text();
+        })
+        .then(data => {
+          if (!data.trim()) {
+            showError('File CSV rỗng. Vui lòng kiểm tra file.');
+            return;
+          }
+          Papa.parse(data, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+              allImages = results.data.filter(image => image.Url && image.Filename);
+              if (allImages.length === 0) {
+                showError('Không tìm thấy ảnh hợp lệ trong file CSV.');
+                return;
+              }
+              restoreViewState();
+              renderPage();
+              setupTouchNavigation();
+              autoScrollButton.addEventListener('click', toggleAutoScroll);
+            },
+            error: function(error) {
+              showError('Lỗi khi phân tích CSV: ' + error.message);
+            }
+          });
+        })
+        .catch(error => {
+          showError('Lỗi khi tải file CSV: ' + error.message);
+        });
+
+      function renderPage(scrollToIndex = null) {
+        leftColumn.innerHTML = '';
+        rightColumn.innerHTML = '';
+        const start = (currentPage - 1) * imagesPerPage;
+        const end = Math.min(start + imagesPerPage, allImages.length);
+        const imageElements = [];
+
+        // Chia ảnh thành cột trái (1, 3, 5,...) và cột phải (2, 4, 6,...)
+        for (let i = start; i < end; i++) {
+          const image = allImages[i];
+          const searchQuery = image.Filename.replace(/\s+/g, '+');
+          const div = document.createElement('div');
+          div.className = 'image-container';
+          div.dataset.index = i;
+          div.innerHTML = `
+            <img src="${image.Url}" alt="${image.Filename}" class="image-card" loading="lazy">
+            <p>${image.Filename}</p>
+            <div class="image-buttons">
+              <button onclick="navigator.clipboard.writeText('${image.Url}').then(() => alert('Đã sao chép URL ảnh!'))">Copy</button>
+              <button onclick="window.open('https://anh.moe/search/images/?q=${searchQuery}', '_blank')">Tìm</button>
+            </div>
+          `;
+          const imgElement = div.querySelector('img');
+          imageElements.push(imgElement);
+          div.addEventListener('click', (e) => {
+            if (!e.target.closest('.image-buttons')) {
+              showFullscreen(i);
+            }
+          });
+
+          // Đặt ảnh vào cột trái (lẻ) hoặc cột phải (chẵn)
+          if ((i - start) % 2 === 0) {
+            leftColumn.appendChild(div);
+          } else {
+            rightColumn.appendChild(div);
+          }
+        }
+
+        renderPagination();
+        updateUrl();
+        saveViewState();
+        currentPageDisplay.textContent = currentPage;
+
+        if (scrollToIndex !== null) {
+          const targetImage = document.querySelector(`.image-container[data-index="${scrollToIndex}"]`);
+          if (targetImage) {
+            targetImage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        return imageElements;
+      }
+
+      function renderPagination() {
+        pagination.innerHTML = '';
+        const totalPages = Math.ceil(allImages.length / imagesPerPage);
+        const prevButton = document.createElement('button');
+        prevButton.textContent = 'Trước';
+        prevButton.disabled = currentPage === 1;
+        prevButton.addEventListener('click', () => {
+          if (currentPage > 1) {
+            currentPage--;
+            renderPage();
+          }
+        });
+        pagination.appendChild(prevButton);
+
+        const pageInfo = document.createElement('span');
+        pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
+        pagination.appendChild(pageInfo);
+
+        const nextButton = document.createElement('button');
+        nextButton.textContent = 'Tiếp';
+        nextButton.disabled = currentPage === totalPages;
+        nextButton.addEventListener('click', () => {
+          if (currentPage < totalPages) {
+            currentPage++;
+            renderPage();
+          }
+        });
+        pagination.appendChild(nextButton);
+      }
+
+      function updateUrl() {
+        const url = new URL(window.location);
+        url.searchParams.set('page', currentPage);
+        window.history.pushState({}, '', url);
+      }
+
+      function showFullscreen(index) {
+        stopAutoScroll();
+        fullscreenIndex = index;
+        const image = allImages[index];
+        const searchQuery = image.Filename.replace(/\s+/g, '+');
+        fullscreen.innerHTML = `
+          <img src="${image.Url}" alt="${image.Filename}">
+          <p>${image.Filename}</p>
+          <div class="fullscreen-buttons">
+            <button onclick="navigator.clipboard.writeText('${image.Url}').then(() => alert('Đã sao chép URL ảnh!'))">Copy URL</button>
+            <button onclick="window.open('https://anh.moe/search/images/?q=${searchQuery}', '_blank')">Tìm trên anh.moe</button>
+          </div>
+        `;
+        fullscreen.style.display = 'flex';
+        currentPage = Math.ceil((index + 1) / imagesPerPage);
+        currentPageDisplay.textContent = currentPage;
+      }
+
+      function hideFullscreen() {
+        const lastIndex = fullscreenIndex;
+        fullscreen.style.display = 'none';
+        fullscreenIndex = null;
+        renderPage(lastIndex);
+      }
+
+      function nextPage() {
+        const totalPages = Math.ceil(allImages.length / imagesPerPage);
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderPage();
+        }
+      }
+
+      function goToPage() {
+        const pageInput = document.getElementById('pageInput');
+        const pageNumber = parseInt(pageInput.value);
+        const totalPages = Math.ceil(allImages.length / imagesPerPage);
+        if (pageNumber >= 1 && pageNumber <= totalPages) {
+          currentPage = pageNumber;
+          renderPage();
+          pageInput.value = '';
+        } else {
+          alert(`Vui lòng nhập số trang hợp lệ (1 - ${totalPages})`);
+        }
+      }
+
+      function setupTouchNavigation() {
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+
+        fullscreen.addEventListener('touchstart', e => {
+          touchStartX = e.changedTouches[0].screenX;
+          touchStartY = e.changedTouches[0].screenY;
+        });
+
+        fullscreen.addEventListener('touchmove', e => {
+          e.preventDefault();
+        }, { passive: false });
+
+        fullscreen.addEventListener('touchend', e => {
+          touchEndX = e.changedTouches[0].screenX;
+          touchEndY = e.changedTouches[0].screenY;
+          handleFullscreenSwipe();
+        });
+
+        function handleFullscreenSwipe() {
+          const swipeX = touchStartX - touchEndX;
+          const swipeY = touchStartY - touchEndY;
+          const minSwipeDistance = 50;
+
+          if (Math.abs(swipeY) > Math.abs(swipeX) && Math.abs(swipeY) > minSwipeDistance) {
+            hideFullscreen();
+          } else if (Math.abs(swipeX) > minSwipeDistance) {
+            if (swipeX > 0 && fullscreenIndex < allImages.length - 1) {
+              showFullscreen(fullscreenIndex + 1);
+            } else if (swipeX < 0 && fullscreenIndex > 0) {
+              showFullscreen(fullscreenIndex - 1);
+            }
+          }
+        }
+
+        fullscreen.addEventListener('wheel', e => {
+          e.preventDefault();
+          if (e.deltaY > 0 && fullscreenIndex < allImages.length - 1) {
+            showFullscreen(fullscreenIndex + 1);
+          } else if (e.deltaY < 0 && fullscreenIndex > 0) {
+            showFullscreen(fullscreenIndex - 1);
+          }
+        });
+      }
+
+      function waitForImagesToLoad(imageElements) {
+        return Promise.all(imageElements.map(img => {
+          return new Promise(resolve => {
+            if (img.complete) {
+              resolve();
+            } else {
+              img.onload = img.onerror = resolve;
+            }
+          });
+        }));
+      }
+
+      function toggleAutoScroll() {
+        if (autoScrollInterval) {
+          stopAutoScroll();
+        } else {
+          startAutoScroll();
+        }
+      }
+
+      function startAutoScroll() {
+        autoScrollButton.textContent = 'Stop';
+        autoScrollInterval = setInterval(async () => {
+          if (isWaitingForPageChange) return;
+
+          window.scrollBy({ top: 5, behavior: 'smooth' });
+          const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 10;
+          const totalPages = Math.ceil(allImages.length / imagesPerPage);
+
+          if (isAtBottom && currentPage < totalPages && !isWaitingForPageChange) {
+            isWaitingForPageChange = true;
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            currentPage++;
+            const imageElements = renderPage();
+            await waitForImagesToLoad(imageElements);
+            isWaitingForPageChange = false;
+          } else if (isAtBottom && currentPage === totalPages) {
+            stopAutoScroll();
+          }
+        }, 50);
+      }
+
+      function stopAutoScroll() {
+        if (autoScrollInterval) {
+          clearInterval(autoScrollInterval);
+          autoScrollInterval = null;
+          autoScrollButton.textContent = 'Auto Scroll';
+          isWaitingForPageChange = false;
+        }
+      }
+
+      function saveViewState() {
+        localStorage.setItem('galleryState', JSON.stringify({ currentPage }));
+      }
+
+      function restoreViewState() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pageFromUrl = parseInt(urlParams.get('page'), 10);
+        if (pageFromUrl && !isNaN(pageFromUrl)) {
+          currentPage = Math.min(Math.max(1, pageFromUrl), Math.ceil(allImages.length / imagesPerPage));
+        } else {
+          const savedState = localStorage.getItem('galleryState');
+          if (savedState) {
+            const state = JSON.parse(savedState);
+            currentPage = Math.min(Math.max(1, state.currentPage || 1), Math.ceil(allImages.length / imagesPerPage));
+          }
+        }
+      }
+    </script>
+  </body>
+</html>
